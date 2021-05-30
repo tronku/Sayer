@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="100dp"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_marginStart="20dp"
+    android:layout_marginEnd="20dp"
+    app:layout_goneMarginStart="10dp"
+    android:layout_marginTop="10dp"
+    android:padding="10dp"
+    android:background="@drawable/broadcast_bubble">
+
+    <TextView
+        android:id="@+id/device_id_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:text="device id: asfasfa"
+        android:textColor="@color/grey"
+        android:fontFamily="@font/avant_garde_normal"
+        android:textSize="12dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/device_id_text"
+        app:layout_constraintStart_toStartOf="parent"
+        android:text="36ft away"
+        android:textSize="30dp"
+        android:textColor="@color/light_blue"
+        android:fontFamily="@font/avant_garde_bold"
+        android:layout_marginTop="10dp"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

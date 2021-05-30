@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:orientation="vertical"
+    tools:context=".ui.MainActivity">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/status_recyclerview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="invisible"/>
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:layout_width="350dp"
+            android:layout_height="350dp"
+            app:lottie_rawRes="@raw/loader"
+            android:id="@+id/loader_lottie"
+            app:lottie_loop="true"
+            app:lottie_autoPlay="true"
+            android:layout_centerInParent="true"/>
+
+        <TextView
+            android:id="@+id/loader_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/loader_lottie"
+            android:text="Broadcasting and listening to location"
+            android:layout_centerHorizontal="true"
+            android:fontFamily="@font/avant_garde_normal"
+            android:textColor="@color/grey"
+            android:textSize="18dp"/>
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            app:lottie_rawRes="@raw/error"
+            android:id="@+id/error_lottie"
+            app:lottie_loop="true"
+            app:lottie_autoPlay="false"
+            android:layout_centerInParent="true"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/error_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/error_lottie"
+            android:layout_marginTop="20dp"
+            android:text="Something went wrong"
+            android:textColor="@color/grey"
+            android:layout_centerHorizontal="true"
+            android:fontFamily="@font/avant_garde_normal"
+            android:textSize="18dp"
+            android:visibility="gone"/>
+
+    </RelativeLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="110dp">
+
+        <TextView
+            android:id="@+id/device_id_text"
+            android:layout_width="match_parent"
+            android:layout_height="26dp"
+            app:layout_constraintTop_toTopOf="parent"
+            android:background="@color/light_blue"
+            android:textAlignment="center"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:text="Your device id: UNKNOWN"
+            android:textSize="12dp"
+            android:fontFamily="@font/avant_garde_normal"/>
+
+        <TextView
+            android:id="@+id/select_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/device_id_text"
+            android:text="Select location update frequency:"
+            android:fontFamily="@font/avant_garde_normal"
+            android:layout_marginStart="15dp"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/grey"
+            android:textSize="12dp"/>
+
+        <RadioGroup
+            android:id="@+id/update_freq"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/select_text"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:orientation="horizontal"
+            android:layout_marginStart="15dp">
+
+            <RadioButton
+                android:id="@+id/high_freq"
+                android:layout_width="70dp"
+                android:layout_height="40dp"
+                android:text="HIGH"
+                android:gravity="center"
+                android:checked="false"
+                android:button="@android:color/transparent"
+                android:background="@drawable/radio_btn_bg"
+                android:textSize="14dp"
+                android:textColor="@drawable/text_radio"
+                android:fontFamily="@font/avant_garde_normal"/>
+
+            <RadioButton
+                android:id="@+id/medium_freq"
+                android:layout_width="90dp"
+                android:layout_height="40dp"
+                android:text="MEDIUM"
+                android:gravity="center"
+                android:checked="true"
+                android:button="@android:color/transparent"
+                android:background="@drawable/radio_btn_bg"
+                android:textSize="14dp"
+                android:layout_marginStart="14dp"
+                android:textColor="@drawable/text_radio"
+                android:fontFamily="@font/avant_garde_normal"/>
+
+            <RadioButton
+                android:id="@+id/low_freq"
+                android:layout_width="70dp"
+                android:layout_height="40dp"
+                android:text="LOW"
+                android:gravity="center"
+                android:checked="false"
+                android:button="@android:color/transparent"
+                android:background="@drawable/radio_btn_bg"
+                android:textSize="14dp"
+                android:layout_marginStart="14dp"
+                android:textColor="@drawable/text_radio"
+                android:fontFamily="@font/avant_garde_normal"/>
+
+        </RadioGroup>
+
+        <Button
+            android:id="@+id/restart_service"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            app:layout_constraintStart_toEndOf="@id/update_freq"
+            app:layout_constraintTop_toTopOf="@id/update_freq"
+            android:layout_marginStart="20dp"
+            android:text="Restart"
+            android:fontFamily="@font/avant_garde_medium"
+            android:textSize="14dp"
+            android:background="@drawable/add_btn_bg"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</LinearLayout>
