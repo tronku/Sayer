@@ -1,6 +1,5 @@
 package com.tronku.sayer.ui
 
-import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -16,11 +15,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.work.BackoffPolicy
-import androidx.work.Constraints
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
+import androidx.work.*
 import com.airbnb.lottie.LottieAnimationView
 import com.bridgefy.sdk.client.*
 import com.tronku.sayer.R
@@ -28,19 +25,20 @@ import com.tronku.sayer.location.LocationService
 import com.tronku.sayer.location.UpdateFrequency
 import com.tronku.sayer.network.SyncWorker
 import com.tronku.sayer.utils.Storage
+import com.tronku.sayer.utils.Utils
 import java.util.concurrent.TimeUnit
-import java.util.jar.Manifest
 
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        val FREQUENCY = "frequency"
+        const val FREQUENCY = "frequency"
+        const val TAG = "MainActivity"
+        const val BLUETOOTH_PERMISSION = 101
+        const val LOCATION_PERMISSION = 102
     }
 
-    private val TAG = "MainActivity"
-    private val BLUETOOTH_PERMISSION = 101
-    private val LOCATION_PERMISSION = 102
-    private val broadcastDelay = TimeUnit.SECONDS.toMillis(15)
+    private val broadcastDelay = TimeUnit.SECONDS.toMillis(30)
+    private val syncDelay = TimeUnit.SECONDS.toMillis(15)
 
     private lateinit var loaderLottie: LottieAnimationView
     private lateinit var statusRecyclerView: RecyclerView
@@ -50,9 +48,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var errorText: TextView
     private lateinit var updateFrequencyGroup: RadioGroup
     private lateinit var restartServiceButton: Button
+    private lateinit var retryButton: Button
 
+    private val idSet = hashSetOf<String>()
+    private val adapter by lazy { StatusAdapter() }
     private val serviceIntent by lazy { Intent(this@MainActivity, LocationService::class.java) }
     private val handler by lazy { Handler(mainLooper) }
+    private val syncHandler by lazy { Handler(Looper.getMainLooper()) }
+
     private val broadcastRunnable by lazy {
         object : Runnable {
             override fun run() {
@@ -71,7 +74,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val idMap = hashMapOf<String, String>()
+    private val syncRunnable = object : Runnable {
+        override fun run() {
+            syncHandler.postDelayed(this, syncDelay)
+            if (Utils.isConnected() && Storage.getAllLocations().isNotEmpty() && Storage.getBridgefy()) {
+                syncToServer()
+            }
+        }
+    }
 
     private val messageListener = object : MessageListener() {
         override fun onBroadcastMessageReceived(message: Message?) {
@@ -86,8 +96,8 @@ class MainActivity : AppCompatActivity() {
     private val stateListener = object : StateListener() {
         override fun onStarted() {
             Log.e(TAG, "Bridgefy Started")
+            Storage.setBridgefy(true)
             startLocationService()
-            //startService(Intent(this@MainActivity, LocationService::class.java))
             broadcastMessage()
         }
 
@@ -120,7 +130,8 @@ class MainActivity : AppCompatActivity() {
         initViews()
         checkForPermissions()
         initBridgefy()
-        initSyncWorker()
+        //initSyncWorker()
+        initSyncHandler()
     }
 
     private fun initViews() {
@@ -132,12 +143,24 @@ class MainActivity : AppCompatActivity() {
         errorText = findViewById(R.id.error_text)
         updateFrequencyGroup = findViewById(R.id.update_freq)
         restartServiceButton = findViewById(R.id.restart_service)
-
-        statusRecyclerView.adapter = StatusAdapter()
+        retryButton = findViewById(R.id.retry_button)
 
         restartServiceButton.setOnClickListener {
             startLocationService(getFrequency())
         }
+
+        retryButton.setOnClickListener {
+            toggleError(false)
+            toggleLoader(true)
+            startBridge(Storage.getDeviceId())
+        }
+
+        setupRecyclerView()
+    }
+
+    private fun setupRecyclerView() {
+        statusRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, true)
+        statusRecyclerView.adapter = adapter
     }
 
     private fun getFrequency(): UpdateFrequency {
@@ -150,6 +173,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkForPermissions() {
         val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+
         if (bluetoothAdapter == null) {
             Toast.makeText(this, "Device doesn't support bluetooth", Toast.LENGTH_SHORT).show()
         } else if (!bluetoothAdapter.isEnabled) {
@@ -209,10 +233,6 @@ class MainActivity : AppCompatActivity() {
         startService(serviceIntent)
     }
 
-    private fun stopLocationService() {
-        stopService(serviceIntent)
-    }
-
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
@@ -225,27 +245,63 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initSyncWorker() {
-        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(10, TimeUnit.MINUTES)
-            .setInitialDelay(10, TimeUnit.MINUTES)
-            .setBackoffCriteria(
-                BackoffPolicy.LINEAR,
-                30,
-                TimeUnit.SECONDS
-            )
+        val manager = WorkManager.getInstance(this)
+        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(10, TimeUnit.SECONDS)
             .build()
-        WorkManager.getInstance(this).enqueue(syncRequest)
+        manager.enqueue(syncRequest)
+        SyncWorker.updateListener.observe(this, { isSuccess ->
+            if (isSuccess)
+                onSyncSuccess()
+            else
+                Log.e("SYNC", "FAILED")
+        })
+    }
+
+    private fun initSyncHandler() {
+        syncHandler.post(syncRunnable)
+    }
+
+    private fun syncToServer() {
+        onSyncSuccess()
+    }
+
+    private fun onSyncSuccess() {
+        Log.e("SYNC", "SUCCESS")
+        val locationCount = Storage.getAllLocations().size
+        val status = Status(
+                System.currentTimeMillis(),
+                "Yay! We synced up $locationCount location(s) with the authorities. Please hold up.",
+                Type.SYNCED
+        )
+        Storage.clearAllLocations()
+        updateList(status)
     }
 
     private fun handleBroadcastMessage(message: Message) {
         val deviceId = message.content[Storage.DEVICE_ID] as String
         val coordinates = (message.content[Storage.OTHER_LOCATION] as String).split(';')
         Storage.saveOtherLocation(deviceId, Triple(coordinates[0].toLong(), coordinates[1].toDouble(), coordinates[2].toDouble()))
+
+        updateBroadcast(deviceId, coordinates)
         Log.e("MESSAGE", "RECEIVED")
     }
 
     private fun broadcastMessage() {
         Log.e("BROADCAST", "STARTED")
         handler.post(broadcastRunnable)
+    }
+
+    private fun updateBroadcast(deviceId: String, coordinates: List<String>) {
+        if (!idSet.contains(deviceId)) {
+            updateList(
+                    Status(
+                            coordinates[0].toLong(),
+                            "$deviceId;${coordinates[1].toDouble()};${coordinates[2].toDouble()}",
+                            Type.RECEIVED
+                    )
+            )
+            idSet.add(deviceId)
+        }
     }
 
     private fun toggleLoader(isVisible: Boolean) {
@@ -259,9 +315,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toggleError(isVisible: Boolean) {
-
         errorLottie.visibility = if(isVisible) View.VISIBLE else View.GONE
         errorText.visibility = if(isVisible) View.VISIBLE else View.GONE
+        retryButton.visibility = if(isVisible) View.VISIBLE else View.GONE
         statusRecyclerView.visibility = if(!isVisible) View.VISIBLE else View.INVISIBLE
         if (isVisible)
             errorLottie.playAnimation()
@@ -289,5 +345,16 @@ class MainActivity : AppCompatActivity() {
         loaderLottie.clearAnimation()
         errorLottie.clearAnimation()
         handler.removeCallbacks(broadcastRunnable)
+        syncHandler.removeCallbacks(syncRunnable)
+        Storage.setBridgefy(false)
+    }
+
+    private fun updateList(status: Status) {
+        Log.e("LIST", "UPDATED")
+        val list = arrayListOf<Status>()
+        list.addAll(adapter.currentList)
+        list.add(status)
+        adapter.submitList(list)
+        statusRecyclerView.smoothScrollToPosition(adapter.itemCount)
     }
 }

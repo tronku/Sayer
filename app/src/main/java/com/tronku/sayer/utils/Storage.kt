@@ -1,6 +1,7 @@
 package com.tronku.sayer.utils
 
 import android.content.Context
+import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.*
@@ -17,6 +18,7 @@ class Storage {
         const val DEVICE_ID = "device_id"
         const val LOCATION = "location"
         const val OTHER_LOCATION = "other_locations"
+        private const val IS_BRIDGEGY = "bridgefy_working"
 
         fun initialize(context: Context) {
             this.context = context
@@ -52,15 +54,25 @@ class Storage {
             val resultMap = hashMapOf<String, String>()
             val type = object : TypeToken<HashMap<String, Triple<Long, Double, Double>>>() {}.type
             val map: HashMap<String, Triple<Long, Double, Double>> = gson.fromJson(getPref(OTHER_LOCATION, "{}"), type)
-            map[getDeviceId()] = getUserLocation()
-            map.forEach { (userId, data) ->
-                resultMap[userId] = "${data.first};${data.second};${data.third}"
+            if (getUserLocation() != null && getUserLocation().first != null) {
+                map[getDeviceId()] = getUserLocation()
+                map.forEach { (userId, data) ->
+                    resultMap[userId] = "${data.first};${data.second};${data.third}"
+                }
             }
             return resultMap
         }
 
         fun clearAllLocations() {
             clearPref(OTHER_LOCATION)
+        }
+
+        fun setBridgefy(value: Boolean) {
+            savePref(IS_BRIDGEGY, "$value")
+        }
+
+        fun getBridgefy(): Boolean {
+            return getPref(IS_BRIDGEGY, "false") == "true"
         }
 
         private fun savePref(key: String, value: String) {

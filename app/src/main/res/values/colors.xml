@@ -11,5 +11,6 @@
     <color name="light_blue">#5499C7</color>
     <color name="faint_blue">#AED6F1</color>
     <color name="grey">@android:color/darker_gray</color>
+    <color name="darker_grey">#626567</color>
     <color name="light_grey">#F2F3F4</color>
 </resources>

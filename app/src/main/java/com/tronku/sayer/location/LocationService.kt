@@ -103,10 +103,12 @@ class LocationService: Service() {
 
         fusedLocationProviderClient.lastLocation
             .addOnSuccessListener {
-                val lat = it.latitude
-                val long = it.longitude
-                Storage.saveUserLocation(Triple(System.currentTimeMillis(), lat, long))
-                Log.e("SERVICE", "LOCATION FETCHED: $lat $long")
+                it?.let {
+                    val lat = it.latitude
+                    val long = it.longitude
+                    Storage.saveUserLocation(Triple(System.currentTimeMillis(), lat, long))
+                    Log.e("SERVICE", "LOCATION FETCHED: $lat $long")
+                }
             }
     }
 
