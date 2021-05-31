@@ -17,15 +17,18 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.work.*
 import com.airbnb.lottie.LottieAnimationView
+import com.android.volley.Request
+import com.android.volley.toolbox.JsonObjectRequest
 import com.bridgefy.sdk.client.*
 import com.tronku.sayer.R
+import com.tronku.sayer.SayerApp
 import com.tronku.sayer.location.LocationService
 import com.tronku.sayer.location.UpdateFrequency
-import com.tronku.sayer.network.SyncWorker
 import com.tronku.sayer.utils.Storage
 import com.tronku.sayer.utils.Utils
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
@@ -38,7 +41,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val broadcastDelay = TimeUnit.SECONDS.toMillis(30)
-    private val syncDelay = TimeUnit.SECONDS.toMillis(15)
+    private val syncDelay = TimeUnit.MINUTES.toMillis(5)
 
     private lateinit var loaderLottie: LottieAnimationView
     private lateinit var statusRecyclerView: RecyclerView
@@ -74,9 +77,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val syncRunnable = object : Runnable {
-        override fun run() {
-            syncHandler.postDelayed(this, syncDelay)
+    private val syncRunnable by lazy {
+        Runnable {
             if (Utils.isConnected() && Storage.getAllLocations().isNotEmpty() && Storage.getBridgefy()) {
                 syncToServer()
             }
@@ -130,7 +132,6 @@ class MainActivity : AppCompatActivity() {
         initViews()
         checkForPermissions()
         initBridgefy()
-        //initSyncWorker()
         initSyncHandler()
     }
 
@@ -244,25 +245,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun initSyncWorker() {
-        val manager = WorkManager.getInstance(this)
-        val syncRequest = PeriodicWorkRequestBuilder<SyncWorker>(10, TimeUnit.SECONDS)
-            .build()
-        manager.enqueue(syncRequest)
-        SyncWorker.updateListener.observe(this, { isSuccess ->
-            if (isSuccess)
-                onSyncSuccess()
-            else
-                Log.e("SYNC", "FAILED")
-        })
-    }
-
     private fun initSyncHandler() {
-        syncHandler.post(syncRunnable)
+        syncHandler.postDelayed(syncRunnable, syncDelay)
     }
 
     private fun syncToServer() {
-        onSyncSuccess()
+        val url = "http://sayor.herokuapp.com/locations"
+        val jsonArray = JSONArray()
+        Storage.getAllLocations().forEach { (key, value) ->
+            val jsonObject = JSONObject()
+            val data = value.split(';')
+            jsonObject.apply {
+                put("deviceId", key)
+                put("addedOn", data[0].toLong())
+                put("latitude", data[1])
+                put("longitude", data[2])
+            }
+            jsonArray.put(jsonObject)
+        }
+        val requestData = JSONObject()
+        requestData.put("devices", jsonArray)
+        Log.e("RESPONSE", requestData.toString())
+
+        val jsonRequest = JsonObjectRequest(Request.Method.POST, url, requestData,
+            {
+                onSyncSuccess()
+            },
+            {
+                Log.e("SYNC", "FAILED: ${it.cause.toString()}")
+            })
+        SayerApp.getInstance().addToRequestQueue(jsonRequest)
     }
 
     private fun onSyncSuccess() {
