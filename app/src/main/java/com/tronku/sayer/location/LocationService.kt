@@ -106,8 +106,9 @@ class LocationService: Service() {
                 it?.let {
                     val lat = it.latitude
                     val long = it.longitude
-                    Storage.saveUserLocation(Triple(System.currentTimeMillis(), lat, long))
-                    Log.e("SERVICE", "LOCATION FETCHED: $lat $long")
+                    val timestamp = TimeUnit.HOURS.toMillis(5) + TimeUnit.MINUTES.toMillis(30) + System.currentTimeMillis()
+                    Storage.saveUserLocation(Triple(timestamp, lat, long))
+                    Log.e("SERVICE", "LOCATION FETCHED: $lat $long $timestamp")
                 }
             }
     }

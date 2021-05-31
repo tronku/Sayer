@@ -72,7 +72,6 @@ class MainActivity : AppCompatActivity() {
                 val message = Message.Builder().setContent(map).build()
                 Bridgefy.sendBroadcastMessage(message)
                 Log.e("MESSAGE", "BROADCASTED")
-                handler.postDelayed(this, broadcastDelay)
             }
         }
     }
@@ -300,7 +299,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun broadcastMessage() {
         Log.e("BROADCAST", "STARTED")
-        handler.post(broadcastRunnable)
+        handler.postDelayed(broadcastRunnable, broadcastDelay)
     }
 
     private fun updateBroadcast(deviceId: String, coordinates: List<String>) {
