@@ -72,14 +72,19 @@ class MainActivity : AppCompatActivity() {
                 val message = Message.Builder().setContent(map).build()
                 Bridgefy.sendBroadcastMessage(message)
                 Log.e("MESSAGE", "BROADCASTED")
+                handler.postDelayed(this, broadcastDelay)
             }
         }
     }
 
     private val syncRunnable by lazy {
-        Runnable {
-            if (Utils.isConnected() && Storage.getAllLocations().isNotEmpty() && Storage.getBridgefy()) {
-                syncToServer()
+        object : Runnable {
+            override fun run() {
+                Log.e("SYNCUP", "CALLED")
+                if (Utils.isConnected() && Storage.getAllLocations().isNotEmpty() && Storage.getBridgefy()) {
+                    syncToServer()
+                }
+                syncHandler.postDelayed(this, syncDelay)
             }
         }
     }
