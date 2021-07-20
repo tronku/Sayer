@@ -15,6 +15,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.airbnb.lottie.LottieAnimationView
@@ -31,7 +32,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), StatusAdapter.LocationItemClickListener {
 
     companion object {
         const val FREQUENCY = "frequency"
@@ -54,7 +55,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var retryButton: Button
 
     private val idSet = hashSetOf<String>()
-    private val adapter by lazy { StatusAdapter() }
+    private val adapter by lazy { StatusAdapter(this) }
     private val serviceIntent by lazy { Intent(this@MainActivity, LocationService::class.java) }
     private val handler by lazy { Handler(mainLooper) }
     private val syncHandler by lazy { Handler(Looper.getMainLooper()) }
@@ -95,6 +96,16 @@ class MainActivity : AppCompatActivity() {
                 toggleLoader(false)
                 toggleError(false)
                 handleBroadcastMessage(message)
+            }
+        }
+
+        override fun onMessageReceived(message: Message?) {
+            message?.let {
+                if (message.content[Storage.DEVICE_ID] == null) {
+                    LocalBroadcastManager.getInstance(this@MainActivity)
+                        .sendBroadcast(Intent(message.senderId)
+                            .putExtra(Storage.CONVERSATION_EXTRA, message.content[Storage.CHAT_PAYLOAD].toString()))
+                }
             }
         }
     }
@@ -372,5 +383,11 @@ class MainActivity : AppCompatActivity() {
         list.add(status)
         adapter.submitList(list)
         statusRecyclerView.smoothScrollToPosition(adapter.itemCount)
+    }
+
+    override fun onChatClicked(deviceId: String) {
+        val intent = Intent(this@MainActivity, ChatActivity::class.java)
+        intent.putExtra(Storage.CONVERSATION_ID, deviceId)
+        startActivity(intent)
     }
 }

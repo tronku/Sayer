@@ -18,6 +18,9 @@ class Storage {
         const val DEVICE_ID = "device_id"
         const val LOCATION = "location"
         const val OTHER_LOCATION = "other_locations"
+        const val CONVERSATION_ID = "conversation_id"
+        const val CHAT_PAYLOAD = "chat_payload"
+        const val CONVERSATION_EXTRA = "conversation_extra"
         private const val IS_BRIDGEGY = "bridgefy_working"
 
         fun initialize(context: Context) {

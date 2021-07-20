@@ -61,4 +61,13 @@
         android:fontFamily="@font/avant_garde_normal"
         android:textColor="@color/grey"/>
 
+    <ImageView
+        android:id="@+id/send_message_button"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:src="@drawable/ic_chat"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="6dp"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

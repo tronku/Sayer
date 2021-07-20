@@ -1,6 +1,7 @@
 package com.tronku.sayer
 
 import android.app.Application
+import androidx.appcompat.app.AppCompatDelegate
 import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
@@ -22,6 +23,7 @@ class SayerApp: Application() {
         super.onCreate()
         instance = this
         Storage.initialize(applicationContext)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
     }
 
     private fun getRequestQueue(): RequestQueue {
